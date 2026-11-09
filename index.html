@@ -221,7 +221,7 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify({DB,REMOVED,S}));}ca
   if(typeof scheduleCloud==="function") scheduleCloud();}
 
 /* ---------- 局域网同步（服务端统一进度） ---------- */
-const SYNC = (location.protocol === "http:" || location.protocol === "https:") ? "/api/progress" : null;
+const SYNC = ((location.protocol === "http:" || location.protocol === "https:") && !/(^|\.)github\.io$/.test(location.hostname)) ? "/api/progress" : null;
 let pushTimer = null, lastPush = 0;
 
 function mergeDB(a, b){
