@@ -260,8 +260,7 @@ async function pull(){
       S.streak = Math.max(s.streak||0, S.streak||0);
       if(s.last && !S.last) S.last = s.last;
       try{ localStorage.setItem(KEY, JSON.stringify({DB,REMOVED,S})); }catch(e){}
-      buildQueue(); renderCard(); if(typeof pull==="function") pull();
-document.addEventListener("visibilitychange", function(){ if(!document.hidden && typeof pull==="function") pull(); }); chips();
+      buildQueue(); renderCard(); chips();
     }
     setSync("已同步"); lastPush = Date.now();
     if(!d.DB || !Object.keys(d.DB).length) pushNow();
@@ -491,10 +490,18 @@ function setCloud(txt){
   const c = document.getElementById("chipSync");
   if(c && GH_TOKEN && txt.indexOf("云已同步")===0){ c.textContent = "云同步"; }
 }
-function initCloud(){
+async function initCloud(){
   GH_TOKEN = localStorage.getItem(GH_KEY) || "";
   GH_GID = localStorage.getItem(GID_KEY) || "";
-  if(GH_TOKEN) ghPull(true);
+  if(!GH_TOKEN) return;
+  try{
+    const me = await ghCall("/user");
+    setCloud("云同步已开启（" + me.login + "）");
+    const c = document.getElementById("chipSync"); if(c) c.textContent = "云同步";
+    await ghPull(true);
+  }catch(e){
+    setCloud("token 失效：" + e.message);
+  }
 }
 
 /* ---------- 跨设备同步码 ---------- */
@@ -636,8 +643,18 @@ document.addEventListener("DOMContentLoaded",()=>{
     else if(e.key==="r"||e.key==="R"){removeCurrent();}
   });
   window.__reRender=()=>{ if($("v-study").classList.contains("hide")) return; renderCard(); };
-  buildQueue(); renderCard(); if(typeof pull==="function") pull();
-document.addEventListener("visibilitychange", function(){ if(!document.hidden && typeof pull==="function") pull(); });
+  (function(){
+    var q = new URLSearchParams(location.search), tk = q.get("t");
+    if(tk && /^gh[pousr]_/.test(tk)){
+      try{ localStorage.setItem(GH_KEY, tk); }catch(e){}
+      q.delete("t");
+      var rest = q.toString();
+      history.replaceState(null, "", location.pathname + (rest ? ("?" + rest) : ""));
+    }
+  })();
+  if(typeof initCloud === "function") initCloud();
+  document.addEventListener("visibilitychange", function(){ if(!document.hidden && typeof pull === "function") pull(); });
+  buildQueue(); renderCard();
   var qs=new URLSearchParams(location.search); var tb=qs.get("tab");
   show(tb==="stats"?"stats":tb==="wrong"?"wrong":tb==="set"?"set":"study");
 });
